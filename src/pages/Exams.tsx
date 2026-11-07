@@ -1,7 +1,7 @@
 import { ClipboardList, Plus, MapPin, Calendar } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Badge, { variantForStatus } from '@/components/Badge';
-import { exams } from '@/lib/supabase';
+import { exams } from '@/data/mockData';
 
 export default function Exams() {
   const upcoming = exams.filter((e) => e.status === 'Upcoming');

@@ -1,7 +1,7 @@
 import { GraduationCap, Plus, Download } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Badge from '@/components/Badge';
-import { gradebook } from '@/lib/supabase';
+import { gradebook } from '@/data/mockData';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip,
 } from 'recharts';
