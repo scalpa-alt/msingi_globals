@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar, User, Users, FileText,
-  CheckCircle2, XCircle, Clock, FileCheck, FileWarning, FileX, GraduationCap,
+  CheckCircle2, XCircle, Clock, FileCheck, FileX, GraduationCap,
 } from 'lucide-react';
 import Badge, { variantForStatus } from '@/components/Badge';
 import Modal from '@/components/Modal';
