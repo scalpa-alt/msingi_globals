@@ -2,7 +2,7 @@ import { GraduationCap, Download, TrendingUp } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Badge from '@/components/Badge';
 import StatCard from '@/components/StatCard';
-import { gradebook } from '@/lib/supabase';
+import { gradebook } from '@/data/mockData';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
 } from 'recharts';
