@@ -33,7 +33,7 @@ export default function Library() {
                 <div>
                   <h3 className="font-semibold text-slate-900 dark:text-white">{book.title}</h3>
                   <p className="text-xs text-slate-500 mt-1">Author: {book.author}</p>
-                  <p className="text-xs text-slate-400 mt-0.5">ISBN: {book.isbn || 'N/A'}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Category: {book.category || 'General'}</p>
                 </div>
                 <div className="mt-4 flex items-center justify-between border-t border-slate-100 dark:border-slate-800 pt-3">
                   <span className="text-xs text-slate-500">Available: <b>{book.available_copies}</b> / {book.total_copies}</span>

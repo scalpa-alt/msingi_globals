@@ -14,9 +14,9 @@ export default function Fees() {
   async function fetchFees() {
     setLoading(true);
     const { data, error } = await supabase
-      .from('fees')
-      .select('*, student:profiles!fees_student_id_fkey(full_name)')
-      .order('due_date', { ascending: true });
+      .from('fee_invoices_view')
+      .select('*')
+      .order('due', { ascending: true });
     if (!error && data) setFees(data);
     setLoading(false);
   }
@@ -35,7 +35,10 @@ export default function Fees() {
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300">
                   <th className="pb-3 font-semibold">Student</th>
-                  <th className="pb-3 font-semibold">Amount Due</th>
+                  <th className="pb-3 font-semibold">Class</th>
+                  <th className="pb-3 font-semibold">Amount</th>
+                  <th className="pb-3 font-semibold">Paid</th>
+                  <th className="pb-3 font-semibold">Balance</th>
                   <th className="pb-3 font-semibold">Due Date</th>
                   <th className="pb-3 font-semibold">Status</th>
                 </tr>
@@ -43,11 +46,14 @@ export default function Fees() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
                 {fees.map((fee) => (
                   <tr key={fee.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <td className="py-3 font-medium text-slate-900 dark:text-white">{fee.student?.full_name || 'Unknown'}</td>
-                    <td className="py-3">${fee.amount}</td>
-                    <td className="py-3">{fee.due_date}</td>
+                    <td className="py-3 font-medium text-slate-900 dark:text-white">{fee.student || 'Unknown'}</td>
+                    <td className="py-3">{fee.grade ?? '-'}</td>
+                    <td className="py-3">${Number(fee.amount).toLocaleString()}</td>
+                    <td className="py-3">${Number(fee.paid).toLocaleString()}</td>
+                    <td className="py-3">${Number(fee.balance).toLocaleString()}</td>
+                    <td className="py-3">{fee.due}</td>
                     <td className="py-3">
-                      <Badge variant={fee.status === 'paid' ? 'teal' : fee.status === 'partial' ? 'amber' : 'rose'}>
+                      <Badge variant={fee.status === 'Paid' ? 'teal' : fee.status === 'Pending' ? 'amber' : 'rose'}>
                         {fee.status}
                       </Badge>
                     </td>

@@ -13,7 +13,7 @@ export default function Admissions() {
 
   async function fetchApplicants() {
     setLoading(true);
-    const { data, error } = await supabase.from('applicants').select('*').order('submitted_at', { ascending: false });
+    const { data, error } = await supabase.from('applicants').select('*').order('applied_on', { ascending: false });
     if (!error && data) setApplicants(data);
     setLoading(false);
   }
@@ -48,18 +48,18 @@ export default function Admissions() {
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-slate-600 dark:text-slate-300">
                 {applicants.map((app) => (
                   <tr key={app.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <td className="py-3 font-medium text-slate-900 dark:text-white">{app.first_name} {app.last_name}</td>
+                    <td className="py-3 font-medium text-slate-900 dark:text-white">{app.name}</td>
                     <td className="py-3">{app.email}</td>
-                    <td className="py-3">{app.grade_applied}</td>
+                    <td className="py-3">{app.grade}</td>
                     <td className="py-3">
-                      <Badge variant={app.status === 'enrolled' || app.status === 'approved' ? 'teal' : app.status === 'rejected' ? 'rose' : 'amber'}>
+                      <Badge variant={app.status === 'Accepted' ? 'teal' : app.status === 'Rejected' ? 'rose' : 'amber'}>
                         {app.status}
                       </Badge>
                     </td>
                     <td className="py-3 text-right space-x-2">
-                      <button onClick={() => updateStatus(app.id, 'approved')} className="text-teal-600 hover:underline font-medium text-xs">Approve</button>
-                      <button onClick={() => updateStatus(app.id, 'enrolled')} className="text-blue-600 hover:underline font-medium text-xs">Enroll</button>
-                      <button onClick={() => updateStatus(app.id, 'rejected')} className="text-rose-600 hover:underline font-medium text-xs">Reject</button>
+                      <button onClick={() => updateStatus(app.id, 'Accepted')} className="text-teal-600 hover:underline font-medium text-xs">Accept</button>
+                      <button onClick={() => updateStatus(app.id, 'Pending')} className="text-slate-500 hover:underline font-medium text-xs">Reopen</button>
+                      <button onClick={() => updateStatus(app.id, 'Rejected')} className="text-rose-600 hover:underline font-medium text-xs">Reject</button>
                     </td>
                   </tr>
                 ))}
