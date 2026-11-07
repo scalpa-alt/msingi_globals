@@ -40,9 +40,9 @@ export default function Topbar({ onToggleMobile, onToggleCollapse, theme, onTogg
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setProfileOpen(false);
-    logout();
+    await logout();
     navigate('/login', { replace: true });
   };
 

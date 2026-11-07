@@ -2,30 +2,16 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import type { Role } from '@/context/AuthContext';
-
-interface RoleOption {
-  value: Role;
-  label: string;
-  hint: string;
-}
-
-const roleOptions: RoleOption[] = [
-  { value: 'administrator', label: 'Administrator', hint: 'Full access to all modules' },
-  { value: 'teacher', label: 'Teacher', hint: 'Classes, grades & attendance' },
-  { value: 'student', label: 'Student / Parent', hint: 'Schedule, results & fees' },
-];
+import { isSupabaseConfigured } from '@/lib/supabase';
 
 interface FormState {
   email: string;
   password: string;
-  role: Role;
 }
 
 interface FormErrors {
   email?: string;
   password?: string;
-  role?: string;
 }
 
 function validate(form: FormState): FormErrors {
@@ -43,22 +29,15 @@ function validate(form: FormState): FormErrors {
   return errors;
 }
 
-function nameFromEmail(email: string): string {
-  const local = email.split('@')[0] ?? email;
-  return local
-    .split(/[._-]/)
-    .filter(Boolean)
-    .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
-    .join(' ');
-}
-
 export default function Login() {
-  const { login } = useAuth();
+  const { login, authError } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState<FormState>({ email: '', password: '', role: 'administrator' });
+  const [form, setForm] = useState<FormState>({ email: '', password: '' });
   const [errors, setErrors] = useState<FormErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const update = (field: keyof FormState, value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
@@ -67,18 +46,21 @@ export default function Login() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitted(true);
+    setFormError(null);
     const nextErrors = validate(form);
     setErrors(nextErrors);
     if (Object.keys(nextErrors).length > 0) return;
 
-    login({
-      name: nameFromEmail(form.email),
-      email: form.email,
-      role: form.role,
-    });
+    setSubmitting(true);
+    const message = await login(form.email.trim(), form.password);
+    setSubmitting(false);
+    if (message) {
+      setFormError(message === 'Invalid login credentials' ? 'Incorrect email or password.' : message);
+      return;
+    }
     navigate('/dashboard', { replace: true });
   };
 
@@ -201,44 +183,27 @@ export default function Login() {
               )}
             </div>
 
-            {/* Role selector */}
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700 dark:text-slate-300">Sign in as</label>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                {roleOptions.map((opt) => {
-                  const active = form.role === opt.value;
-                  return (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => update('role', opt.value)}
-                      className={`rounded-xl border p-3 text-left transition ${
-                        active
-                          ? 'border-teal-500 bg-teal-50 ring-2 ring-teal-500/20 dark:bg-teal-500/10'
-                          : 'border-slate-200 bg-white hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600'
-                      }`}
-                    >
-                      <p className={`text-sm font-semibold ${active ? 'text-teal-700 dark:text-teal-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                        {opt.label}
-                      </p>
-                      <p className="mt-0.5 text-xs text-slate-400">{opt.hint}</p>
-                    </button>
-                  );
-                })}
+            {(formError || authError || !isSupabaseConfigured) && (
+              <div role="alert" className="flex items-start gap-2 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+                <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                <span>
+                  {formError ?? authError ?? 'Supabase is not configured: set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY.'}
+                </span>
               </div>
-            </div>
+            )}
 
             <button
               type="submit"
-              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30"
+              disabled={submitting}
+              className="group flex w-full items-center justify-center gap-2 rounded-xl bg-teal-600 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500/30 disabled:opacity-60"
             >
-              Sign in
+              {submitting ? 'Signing in…' : 'Sign in'}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </button>
           </form>
 
           <p className="mt-6 text-center text-xs text-slate-400">
-            This is a demo — any email and a 6+ character password will sign you in.
+            Accounts are created by the school administrator. Your role is set on your account.
           </p>
         </div>
       </div>

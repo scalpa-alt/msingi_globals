@@ -27,9 +27,18 @@ function hasAccess(role: Role, pathname: string): boolean {
   return allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
 }
 
+function AuthSpinner() {
+  return (
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950" role="status" aria-label="Loading">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-teal-600 border-t-transparent" />
+    </div>
+  );
+}
+
 function RequireAuth({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
   const location = useLocation();
+  if (loading) return <AuthSpinner />;
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
@@ -40,7 +49,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 function RedirectIfAuth({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+  if (loading) return <AuthSpinner />;
   if (user) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 }
