@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+
+const NOT_CONFIGURED = 'This site is not connected to its database yet. Set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in Vercel and redeploy.';
+const NETWORK = 'Could not reach the server. Check your internet connection and the Supabase URL, then try again.';
 
 export interface SchoolOption {
   id: string;
@@ -28,6 +31,7 @@ export interface SignupResult {
  * or parent) and nobody gets access until it says so.
  */
 export async function registerAccount({ email, password, metadata }: SignupInput): Promise<SignupResult> {
+  if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
     password,
@@ -40,6 +44,7 @@ export async function registerAccount({ email, password, metadata }: SignupInput
     if (/already registered|already exists/i.test(error.message)) {
       return { error: 'An account with this email already exists. Try signing in instead.' };
     }
+    if (/failed to fetch|networkerror|load failed/i.test(error.message)) return { error: NETWORK };
     return { error: error.message };
   }
   // With email confirmation on, signing up an existing address returns a user with no identities.

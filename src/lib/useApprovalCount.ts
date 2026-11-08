@@ -3,14 +3,14 @@ import { supabase } from '@/lib/supabase';
 
 export const APPROVALS_CHANGED = 'approvals-changed';
 
-/** Number of registrations waiting for the administrator (teachers + parents). */
+/** Number of teacher registrations waiting for the administrator. */
 export function useApprovalCount(enabled: boolean): number {
   const [count, setCount] = useState(0);
 
   const load = useCallback(async () => {
     const { data } = await supabase.rpc('get_school_overview');
-    const o = data as { pendingTeachers?: number; pendingParents?: number } | null;
-    setCount((o?.pendingTeachers ?? 0) + (o?.pendingParents ?? 0));
+    const o = data as { pendingTeachers?: number } | null;
+    setCount(o?.pendingTeachers ?? 0);
   }, []);
 
   useEffect(() => {

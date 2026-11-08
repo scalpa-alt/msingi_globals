@@ -71,7 +71,7 @@ export default function RegisterParent({ onDone }: { onDone: (email: string, sig
   return (
     <form onSubmit={onSubmit} noValidate className="space-y-4">
       <p className="text-sm text-slate-500 dark:text-slate-400">
-        Your details are saved for the school to verify. Access to your children’s information is granted once they confirm you.
+        Create your account with your details and your children’s names and classes. The school sees your details, and each child is linked to their school record automatically when the name and class match.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         <TextField label="Full name" required icon={User} autoComplete="name" value={v.fullName} onValueChange={set('fullName')}

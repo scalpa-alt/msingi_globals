@@ -27,8 +27,13 @@ interface ParentGroup {
   children: { id: string; name: string; classLabel: string; linked: boolean }[];
 }
 
-const statusVariant = (s: string) => (s === 'active' ? 'emerald' : s === 'pending' ? 'amber' : s === 'rejected' ? 'rose' : 'slate');
-const statusLabel = (s: string) => (s === 'active' ? 'Verified' : s === 'pending' ? 'Awaiting verification' : s === 'rejected' ? 'Rejected' : s);
+/** A parent's children are either all matched to school records or some are still waiting for the student to be enrolled. */
+const matchState = (g: { children: { linked: boolean }[] }) => {
+  const open = g.children.filter((c) => !c.linked).length;
+  return open === 0
+    ? { variant: 'emerald' as const, label: g.children.length ? 'All children matched' : 'No children listed' }
+    : { variant: 'amber' as const, label: `${open} not matched yet` };
+};
 
 export default function Directory() {
   const [rows, setRows] = useState<DirRow[]>([]);
@@ -77,7 +82,8 @@ export default function Directory() {
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return groups.filter((g) => {
-      if (statusFilter && g.status !== statusFilter) return false;
+      if (statusFilter === 'matched' && g.children.some((c) => !c.linked)) return false;
+      if (statusFilter === 'unmatched' && !g.children.some((c) => !c.linked)) return false;
       if (classFilter && !g.children.some((c) => c.classLabel === classFilter)) return false;
       if (!needle) return true;
       return (
@@ -105,7 +111,7 @@ export default function Directory() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Parent & student directory" subtitle="Every registered parent with their children and classes." />
+      <PageHeader title="Parent & student directory" subtitle="Parents register themselves. Each child is matched to a school record by name and class." />
 
       <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-card dark:border-slate-800 dark:bg-slate-900 lg:flex-row lg:items-center">
         <div className="relative flex-1">
@@ -123,11 +129,10 @@ export default function Directory() {
           <option value="">All classes</option>
           {classes.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by status" className={`${inputClass} lg:w-48`}>
-          <option value="">All statuses</option>
-          <option value="active">Verified</option>
-          <option value="pending">Awaiting verification</option>
-          <option value="rejected">Rejected</option>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} aria-label="Filter by child match" className={`${inputClass} lg:w-52`}>
+          <option value="">All parents</option>
+          <option value="matched">All children matched</option>
+          <option value="unmatched">Has unmatched children</option>
         </select>
         <div className="inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-label="Layout">
           {([['table', Rows3, 'Table'], ['cards', LayoutGrid, 'Cards']] as const).map(([id, Icon, label]) => (
@@ -154,7 +159,7 @@ export default function Directory() {
       </p>
 
       {!loading && filtered.length === 0 ? (
-        <EmptyState icon={Users} title={filtersOn ? 'No matches' : 'No parents yet'} description={filtersOn ? 'Try a different search or clear the filters.' : 'Parents appear here once they register.'} />
+        <EmptyState icon={Users} title={filtersOn ? 'No matches' : 'No parents yet'} description={filtersOn ? 'Try a different search or clear the filters.' : 'Parents appear here as soon as they register.'} />
       ) : view === 'table' ? (
         <>
           {/* Table on larger screens */}
@@ -165,7 +170,7 @@ export default function Directory() {
                   <th className="px-4 py-3">Parent</th>
                   <th className="px-4 py-3">Contact</th>
                   <th className="px-4 py-3">Children</th>
-                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Matching</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -177,7 +182,7 @@ export default function Directory() {
                       {g.phone && <a href={`tel:${g.phone}`} className="block hover:text-teal-600">{g.phone}</a>}
                     </td>
                     <td className="px-4 py-3"><ChildChips g={g} /></td>
-                    <td className="px-4 py-3"><Badge variant={statusVariant(g.status)} dot>{statusLabel(g.status)}</Badge></td>
+                    <td className="px-4 py-3"><Badge variant={matchState(g).variant} dot>{matchState(g).label}</Badge></td>
                   </tr>
                 ))}
               </tbody>
@@ -200,7 +205,7 @@ function CardList({ items, ChildChips, className = '' }: { items: ParentGroup[];
         <li key={g.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
           <div className="flex items-start justify-between gap-2">
             <p className="font-semibold text-slate-900 dark:text-white">{g.name}</p>
-            <Badge variant={statusVariant(g.status)} dot>{statusLabel(g.status)}</Badge>
+            <Badge variant={matchState(g).variant} dot>{matchState(g).label}</Badge>
           </div>
           <a href={`mailto:${g.email}`} className="mt-2 flex items-center gap-1.5 truncate text-sm text-slate-500 hover:text-teal-600"><Mail className="h-3.5 w-3.5 shrink-0" /> {g.email}</a>
           {g.phone && <a href={`tel:${g.phone}`} className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-500 hover:text-teal-600"><Phone className="h-3.5 w-3.5 shrink-0" /> {g.phone}</a>}

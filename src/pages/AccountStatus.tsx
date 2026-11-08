@@ -36,15 +36,6 @@ function copyFor(role: string, status: string): Copy {
       steps: ['Your request is in the headteacher’s approval queue.', 'You will get full access as soon as it is approved.', 'Press “Check status” to see if you have been approved.'],
     };
   }
-  if (role === 'parent') {
-    return {
-      icon: Clock,
-      tone: 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400',
-      title: 'Your details are being verified',
-      body: 'The school is checking your registration and will link your children to your account.',
-      steps: ['The school office reviews your details.', 'Your children are linked to your account.', 'You can then follow their timetable and results.'],
-    };
-  }
   return {
     icon: Clock,
     tone: 'bg-teal-50 text-teal-600 dark:bg-teal-500/10 dark:text-teal-400',
