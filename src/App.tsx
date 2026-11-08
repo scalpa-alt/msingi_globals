@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import AppLayout from '@/layouts/AppLayout';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import AuthPage from '@/pages/auth/AuthPage';
+import ResetPassword from '@/pages/auth/ResetPassword';
 import AccountStatus from '@/pages/AccountStatus';
 import Approvals from '@/pages/Approvals';
 import Directory from '@/pages/Directory';
@@ -55,6 +56,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<RedirectIfAuth><AuthPage /></RedirectIfAuth>} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route
             element={
               <RequireAuth>

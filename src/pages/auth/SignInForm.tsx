@@ -17,6 +17,7 @@ export default function SignInForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [resent, setResent] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const t = useTouched();
 
   const errors = {
@@ -48,6 +49,16 @@ export default function SignInForm() {
     }
   }
 
+  async function forgotPassword() {
+    setFormError(null);
+    setResetSent(false);
+    t.touch('email');
+    if (errors.email) return;
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: `${window.location.origin}/reset-password` });
+    if (error) setFormError(error.message);
+    else setResetSent(true); // same message whether or not the address has an account
+  }
+
   async function resend() {
     const { error } = await supabase.auth.resend({ type: 'signup', email: email.trim() });
     if (error) setFormError(error.message);
@@ -60,6 +71,16 @@ export default function SignInForm() {
         onBlur={() => t.touch('email')} error={t.show('email') ? errors.email : undefined} placeholder="you@school.ac.ke" />
       <PasswordField value={password} onValueChange={setPassword} onBlur={() => t.touch('password')}
         error={t.show('password') ? errors.password : undefined} autoComplete="current-password" />
+      <div className="-mt-2 text-right">
+        <button type="button" onClick={forgotPassword} className="text-sm font-medium text-teal-600 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:text-teal-400">
+          Forgot password?
+        </button>
+      </div>
+      {resetSent && (
+        <p role="status" className="rounded-xl border border-teal-200 bg-teal-50 p-3 text-xs text-teal-800 dark:border-teal-500/30 dark:bg-teal-500/10 dark:text-teal-200">
+          If an account exists for that email, we have sent a link to reset your password.
+        </p>
+      )}
 
       {(formError || authError || !isSupabaseConfigured) && (
         <FormBanner>
