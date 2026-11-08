@@ -8,11 +8,15 @@ import {
   Wallet,
   BookOpen,
   MessageSquare,
+  UserCheck,
+  Users,
   GraduationCap as Logo,
   X,
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import type { Role } from '@/context/AuthContext';
+import { roleAccess, roleLabel } from '@/lib/access';
+import { useApprovalCount } from '@/lib/useApprovalCount';
 
 interface NavItem {
   to: string;
@@ -22,6 +26,8 @@ interface NavItem {
 
 export const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/approvals', label: 'Approvals', icon: UserCheck },
+  { to: '/directory', label: 'Directory', icon: Users },
   { to: '/admissions', label: 'Admissions', icon: UserPlus },
   { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/attendance', label: 'Attendance', icon: CheckSquare },
@@ -32,12 +38,6 @@ export const navItems: NavItem[] = [
   { to: '/results', label: 'Results', icon: GraduationCap },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
 ];
-
-const roleAccess: Record<Role, string[]> = {
-  administrator: ['/dashboard', '/admissions', '/timetable', '/attendance', '/gradebook', '/exams', '/fees', '/library', '/messages'],
-  teacher: ['/dashboard', '/timetable', '/attendance', '/gradebook', '/exams', '/messages'],
-  student: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages'],
-};
 
 export function navItemsForRole(role: Role): NavItem[] {
   const allowed = roleAccess[role];
@@ -53,6 +53,7 @@ interface SidebarProps {
 
 export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, role }: SidebarProps) {
   const items = navItemsForRole(role);
+  const pending = useApprovalCount(role === 'administrator');
 
   return (
     <>
@@ -74,7 +75,7 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, role }: 
           {!collapsed && (
             <div className="lg:block">
               <p className="text-sm font-bold tracking-tight text-slate-900 dark:text-white">Scholaria</p>
-              <p className="text-xs capitalize text-slate-400">{role === 'student' ? 'Student / Parent' : role} Portal</p>
+              <p className="text-xs capitalize text-slate-400">{roleLabel[role]} Portal</p>
             </div>
           )}
           <button
@@ -94,7 +95,7 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, role }: 
               to={item.to}
               onClick={() => mobileOpen && onCloseMobile()}
               className={({ isActive }) =>
-                `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                `group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                   isActive
                     ? 'bg-teal-50 text-teal-700 dark:bg-teal-500/10 dark:text-teal-400'
                     : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white'
@@ -106,6 +107,14 @@ export default function Sidebar({ collapsed, mobileOpen, onCloseMobile, role }: 
                 <>
                   <item.icon className={`h-5 w-5 shrink-0 ${isActive ? 'text-teal-600 dark:text-teal-400' : ''}`} />
                   {!collapsed && <span className="lg:block">{item.label}</span>}
+                  {item.to === '/approvals' && pending > 0 && (
+                    <span
+                      className={`rounded-full bg-amber-500 px-1.5 text-xs font-semibold text-white ${collapsed ? 'lg:absolute lg:right-2 lg:top-1' : 'ml-auto'}`}
+                      aria-label={`${pending} pending approvals`}
+                    >
+                      {pending}
+                    </span>
+                  )}
                   {collapsed && (
                     <span className="pointer-events-none fixed left-20 z-50 ml-2 hidden rounded-lg bg-slate-900 px-2.5 py-1.5 text-xs font-medium text-white opacity-0 shadow-lg group-hover:opacity-100 lg:group-hover:block dark:bg-slate-700">
                       {item.label}

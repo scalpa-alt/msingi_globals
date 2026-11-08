@@ -13,6 +13,7 @@ export default function Dashboard() {
     case 'teacher':
       return <TeacherDashboard />;
     case 'student':
+    case 'parent':
       return <StudentDashboard />;
     default:
       return <AdminDashboard />;
