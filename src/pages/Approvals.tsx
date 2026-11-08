@@ -41,7 +41,7 @@ export default function Approvals() {
     const [t, c] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, email, phone, created_at, teachers(subjects_taught, is_class_teacher, requested_class_label)')
+        .select('id, full_name, email, phone, created_at, teachers!profile_id(subjects_taught, is_class_teacher, requested_class_label)')
         .eq('role', 'teacher')
         .eq('status', 'pending')
         .order('created_at'),
