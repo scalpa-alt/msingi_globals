@@ -39,7 +39,7 @@ const nextSteps: Record<SignupRole, string[]> = {
   administrator: [
     'Open the verification link we emailed you.',
     'Your school is created and you receive full administrator access automatically.',
-    'Sign in, then invite and approve your teachers and parents.',
+    'Sign in, then approve your teachers. Parents can register themselves.',
   ],
   teacher: [
     'Open the verification link we emailed you.',
@@ -48,8 +48,8 @@ const nextSteps: Record<SignupRole, string[]> = {
   ],
   parent: [
     'Open the verification link we emailed you.',
-    'Sign in. The school will verify your details and link your children.',
-    'After verification you can follow your children’s timetable and results.',
+    'Sign in. Your account is ready straight away.',
+    'Your children are linked to their school records, and you can follow their timetable and results.',
   ],
 };
 

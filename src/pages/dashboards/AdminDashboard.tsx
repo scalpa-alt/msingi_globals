@@ -27,7 +27,6 @@ interface Overview {
   registeredParents: number;
   totalStudents: number;
   pendingTeachers: number;
-  pendingParents: number;
 }
 
 export default function AdminDashboard() {
@@ -37,7 +36,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     supabase.rpc('get_school_overview').then(({ data }) => setOverview((data as Overview | null) ?? null));
   }, []);
-  const pending = (overview?.pendingTeachers ?? 0) + (overview?.pendingParents ?? 0);
+  const pending = overview?.pendingTeachers ?? 0;
   const n = (v: number | undefined) => (overview ? (v ?? 0).toLocaleString() : '…');
 
   if (loading) {
@@ -66,7 +65,7 @@ export default function AdminDashboard() {
         <StatCard label="Total students" value={n(overview?.totalStudents)} icon={Users} accent="teal" hint="Currently enrolled" />
         <Link to="/approvals" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Open pending approvals">
           <StatCard label="Pending approvals" value={n(pending)} icon={UserCheck} accent={pending > 0 ? 'amber' : 'teal'}
-            hint={overview ? `${overview.pendingTeachers} teachers · ${overview.pendingParents} parents` : undefined} />
+            hint={overview ? 'Teachers awaiting approval' : undefined} />
         </Link>
       </div>
 

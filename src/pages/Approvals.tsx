@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Check, Clock, Inbox, Mail, Phone, X } from 'lucide-react';
 import PageHeader from '@/components/PageHeader';
 import Badge from '@/components/Badge';
@@ -17,23 +17,9 @@ interface PendingTeacher {
   teachers: { subjects_taught: string[]; is_class_teacher: boolean; requested_class_label: string | null } | null;
 }
 
-interface PendingParent {
-  id: string;
-  full_name: string;
-  email: string;
-  phone: string | null;
-  created_at: string;
-  parents: { parent_children: { id: string; child_name: string; class_label: string }[] } | null;
-}
-
 interface ClassOption {
   id: string;
   label: string;
-}
-
-interface StudentLite {
-  full_name: string;
-  class_label: string;
 }
 
 const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -41,48 +27,30 @@ const fmtDate = (iso: string) => new Date(iso).toLocaleDateString(undefined, { d
 const changed = () => window.dispatchEvent(new Event(APPROVALS_CHANGED));
 
 export default function Approvals() {
-  const [tab, setTab] = useState<'teachers' | 'parents'>('teachers');
   const [teachers, setTeachers] = useState<PendingTeacher[]>([]);
-  const [parents, setParents] = useState<PendingParent[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
-  const [students, setStudents] = useState<StudentLite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [approving, setApproving] = useState<PendingTeacher | null>(null);
   const [extraClasses, setExtraClasses] = useState<string[]>([]);
-  const [rejecting, setRejecting] = useState<{ kind: 'teacher' | 'parent'; id: string; name: string } | null>(null);
+  const [rejecting, setRejecting] = useState<{ id: string; name: string } | null>(null);
   const [reason, setReason] = useState('');
 
   const load = useCallback(async () => {
-    const [t, p, c, s] = await Promise.all([
+    const [t, c] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, full_name, email, phone, created_at, teachers(subjects_taught, is_class_teacher, requested_class_label)')
         .eq('role', 'teacher')
         .eq('status', 'pending')
         .order('created_at'),
-      supabase
-        .from('profiles')
-        .select('id, full_name, email, phone, created_at, parents(parent_children(id, child_name, class_label))')
-        .eq('role', 'parent')
-        .eq('status', 'pending')
-        .order('created_at'),
       supabase.from('classes').select('id, label').order('grade_level').order('label'),
-      supabase.from('students').select('full_name, classes(label)').eq('status', 'active'),
     ]);
-    const firstError = t.error ?? p.error ?? c.error ?? s.error;
-    if (firstError) setError(friendlyError(firstError));
-    else setError(null);
+    const firstError = t.error ?? c.error;
+    setError(firstError ? friendlyError(firstError) : null);
     setTeachers((t.data ?? []) as unknown as PendingTeacher[]);
-    setParents((p.data ?? []) as unknown as PendingParent[]);
     setClasses((c.data ?? []) as ClassOption[]);
-    setStudents(
-      ((s.data ?? []) as unknown as { full_name: string; classes: { label: string } | null }[]).map((x) => ({
-        full_name: x.full_name,
-        class_label: x.classes?.label ?? '',
-      })),
-    );
     setLoading(false);
   }, []);
 
@@ -90,7 +58,6 @@ export default function Approvals() {
     load();
   }, [load]);
 
-  const studentKeys = useMemo(() => new Set(students.map((s) => `${norm(s.full_name)}|${norm(s.class_label)}`)), [students]);
   const requestedClassId = (label: string | null | undefined) =>
     label ? classes.find((c) => norm(c.label) === norm(label))?.id : undefined;
 
@@ -119,44 +86,16 @@ export default function Approvals() {
 
   async function confirmReject() {
     if (!rejecting) return;
-    const call =
-      rejecting.kind === 'teacher'
-        ? supabase.rpc('reject_teacher', { p_teacher: rejecting.id, p_reason: reason.trim() || null })
-        : supabase.rpc('reject_parent', { p_parent: rejecting.id });
-    const ok = await run(rejecting.id, call);
+    const ok = await run(rejecting.id, supabase.rpc('reject_teacher', { p_teacher: rejecting.id, p_reason: reason.trim() || null }));
     if (ok) {
       setRejecting(null);
       setReason('');
     }
   }
 
-  const tabs = [
-    { id: 'teachers' as const, label: 'Teachers', count: teachers.length },
-    { id: 'parents' as const, label: 'Parents', count: parents.length },
-  ];
-
   return (
     <div className="space-y-6">
-      <PageHeader title="Pending approvals" subtitle="Confirm new teachers and verify parent registrations." />
-
-      <div role="tablist" aria-label="Approval type" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            role="tab"
-            aria-selected={tab === t.id}
-            onClick={() => setTab(t.id)}
-            className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
-              tab === t.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
-            }`}
-          >
-            {t.label}
-            <span className={`rounded-full px-2 py-0.5 text-xs ${t.count ? 'bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300' : 'bg-slate-200 text-slate-500 dark:bg-slate-700'}`}>
-              {t.count}
-            </span>
-          </button>
-        ))}
-      </div>
+      <PageHeader title="Pending approvals" subtitle="Confirm new teachers before they can use the system. Parents register themselves and do not need approval." />
 
       {error && (
         <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
@@ -166,7 +105,7 @@ export default function Approvals() {
 
       {loading ? (
         <p className="text-sm text-slate-500">Loading…</p>
-      ) : tab === 'teachers' ? (
+      ) :
         teachers.length === 0 ? (
           <EmptyState icon={Inbox} title="No teachers waiting" description="New teacher registrations will appear here for your approval." />
         ) : (
@@ -201,7 +140,7 @@ export default function Approvals() {
                   </button>
                   <button
                     disabled={busyId === t.id}
-                    onClick={() => setRejecting({ kind: 'teacher', id: t.id, name: t.full_name })}
+                    onClick={() => setRejecting({ id: t.id, name: t.full_name })}
                     className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:opacity-60 dark:border-rose-500/30 dark:hover:bg-rose-500/10"
                   >
                     <X className="h-4 w-4" /> Reject
@@ -210,57 +149,7 @@ export default function Approvals() {
               </li>
             ))}
           </ul>
-        )
-      ) : parents.length === 0 ? (
-        <EmptyState icon={Inbox} title="No parents waiting" description="Parent registrations will appear here so you can verify them." />
-      ) : (
-        <ul className="grid gap-4 lg:grid-cols-2">
-          {parents.map((p) => {
-            const kids = p.parents?.parent_children ?? [];
-            return (
-              <li key={p.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold text-slate-900 dark:text-white">{p.full_name}</p>
-                    <p className="mt-1 flex items-center gap-1.5 truncate text-sm text-slate-500"><Mail className="h-3.5 w-3.5 shrink-0" /> {p.email}</p>
-                    {p.phone && <p className="mt-0.5 flex items-center gap-1.5 text-sm text-slate-500"><Phone className="h-3.5 w-3.5 shrink-0" /> {p.phone}</p>}
-                  </div>
-                  <Badge variant="amber" dot>Pending</Badge>
-                </div>
-                <ul className="mt-4 divide-y divide-slate-100 rounded-xl border border-slate-100 dark:divide-slate-800 dark:border-slate-800">
-                  {kids.map((k) => {
-                    const match = studentKeys.has(`${norm(k.child_name)}|${norm(k.class_label)}`);
-                    return (
-                      <li key={k.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                        <span className="min-w-0 truncate text-slate-700 dark:text-slate-200">{k.child_name} <span className="text-slate-400">· {k.class_label}</span></span>
-                        <Badge variant={match ? 'emerald' : 'sky'}>{match ? 'Matches student' : 'New record'}</Badge>
-                      </li>
-                    );
-                  })}
-                  {kids.length === 0 && <li className="px-3 py-2 text-sm text-slate-400">No children listed</li>}
-                </ul>
-                <p className="mt-3 flex items-center gap-1.5 text-xs text-slate-400"><Clock className="h-3 w-3" /> Registered {fmtDate(p.created_at)}</p>
-                <div className="mt-4 flex gap-2">
-                  <button
-                    disabled={busyId === p.id}
-                    onClick={() => run(p.id, supabase.rpc('approve_parent', { p_parent: p.id }))}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-teal-600 px-3 py-2 text-sm font-semibold text-white hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40 disabled:opacity-60"
-                  >
-                    <Check className="h-4 w-4" /> Approve
-                  </button>
-                  <button
-                    disabled={busyId === p.id}
-                    onClick={() => setRejecting({ kind: 'parent', id: p.id, name: p.full_name })}
-                    className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-rose-200 px-3 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 disabled:opacity-60 dark:border-rose-500/30 dark:hover:bg-rose-500/10"
-                  >
-                    <X className="h-4 w-4" /> Reject
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        )}
 
       {/* Approve teacher */}
       <Modal
@@ -318,7 +207,7 @@ export default function Approvals() {
           </>
         }
       >
-        {rejecting?.kind === 'teacher' && (
+        {rejecting && (
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
             Reason (optional)
             <textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={3} maxLength={300} className={`${inputClass} mt-1`} />
