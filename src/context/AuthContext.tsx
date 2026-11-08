@@ -3,22 +3,33 @@ import type { ReactNode } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
-export type Role = 'administrator' | 'teacher' | 'student';
+export type Role = 'administrator' | 'teacher' | 'student' | 'parent';
+
+/**
+ * unverified - email not yet confirmed (cannot normally sign in)
+ * pending    - registered, waiting for an administrator to approve
+ * active     - approved: full access for the role
+ * rejected   - an administrator declined the registration
+ */
+export type AccountStatus = 'unverified' | 'pending' | 'active' | 'rejected';
 
 export interface AuthUser {
   id: string;
   name: string;
   email: string;
   role: Role;
+  status: AccountStatus;
 }
 
 interface Profile {
   id: string;
   full_name: string;
   role: Role;
+  status: AccountStatus;
 }
 
 interface AuthContextValue {
+  /** The signed-in user (any status). Check `user.status === 'active'` before showing app features. */
   user: AuthUser | null;
   /** True while the stored session or the profile is still being loaded. */
   loading: boolean;
@@ -27,6 +38,8 @@ interface AuthContextValue {
   /** Resolves to an error message, or null on success. */
   login: (email: string, password: string) => Promise<string | null>;
   logout: () => Promise<void>;
+  /** Re-read the profile, e.g. to see whether an administrator has approved the account. */
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -37,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileChecked, setProfileChecked] = useState<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // 1. Track the Supabase session (restored from storage, refreshed automatically).
   useEffect(() => {
@@ -52,21 +66,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // 2. Load the role/name from `profiles`. The role is never taken from the client.
+  // 2. Load role + status from `profiles`. Neither is ever taken from the client.
   const userId = session?.user.id ?? null;
   useEffect(() => {
     if (!userId) return;
     let cancelled = false;
     supabase
       .from('profiles')
-      .select('id, full_name, role')
+      .select('id, full_name, role, status')
       .eq('id', userId)
       .maybeSingle()
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error || !data) {
           setProfile(null);
-          setAuthError('Your account has no profile yet. Ask the administrator to set it up.');
+          setAuthError('Your account has no profile yet. Please contact your school administrator.');
           void supabase.auth.signOut();
         } else {
           setProfile(data as Profile);
@@ -77,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [userId]);
+  }, [userId, reloadKey]);
 
   const loading = initializing || (!!userId && profileChecked !== userId);
 
@@ -88,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: profile.full_name || session.user.email?.split('@')[0] || 'User',
       email: session.user.email ?? '',
       role: profile.role,
+      status: profile.status,
     };
   }, [session, profile]);
 
@@ -103,9 +118,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfileChecked(null);
   }, []);
 
+  const refresh = useCallback(async () => {
+    setProfileChecked(null); // shows the loading state until the new profile arrives
+    setReloadKey((k) => k + 1);
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, authError, login, logout }),
-    [user, loading, authError, login, logout],
+    () => ({ user, loading, authError, login, logout, refresh }),
+    [user, loading, authError, login, logout, refresh],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,4 +1,6 @@
-import { Users, GraduationCap, CalendarCheck, Wallet, UserPlus, ClipboardList, BookOpen, AlertTriangle, Library } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { Users, GraduationCap, Wallet, UserPlus, ClipboardList, BookOpen, AlertTriangle, Library, UserCheck, Baby } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -6,7 +8,8 @@ import PageHeader from '@/components/PageHeader';
 import StatCard from '@/components/StatCard';
 import Skeleton from '@/components/Skeleton';
 import { useLoadingDelay } from '@/hooks/useLoadingDelay';
-import { academicStats, enrollmentTrend, feesCollectedByMonth, activityFeed } from '@/data/mockData';
+import { supabase } from '@/lib/supabase';
+import { enrollmentTrend, feesCollectedByMonth, activityFeed } from '@/data/mockData';
 
 const activityIcon: Record<string, { icon: typeof Users; tone: string }> = {
   grade: { icon: ClipboardList, tone: 'bg-sky-50 text-sky-600 dark:bg-sky-500/10 dark:text-sky-400' },
@@ -19,8 +22,23 @@ const activityIcon: Record<string, { icon: typeof Users; tone: string }> = {
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900';
 
+interface Overview {
+  activeTeachers: number;
+  registeredParents: number;
+  totalStudents: number;
+  pendingTeachers: number;
+  pendingParents: number;
+}
+
 export default function AdminDashboard() {
   const loading = useLoadingDelay(900);
+  const [overview, setOverview] = useState<Overview | null>(null);
+
+  useEffect(() => {
+    supabase.rpc('get_school_overview').then(({ data }) => setOverview((data as Overview | null) ?? null));
+  }, []);
+  const pending = (overview?.pendingTeachers ?? 0) + (overview?.pendingParents ?? 0);
+  const n = (v: number | undefined) => (overview ? (v ?? 0).toLocaleString() : '…');
 
   if (loading) {
     return (
@@ -38,17 +56,18 @@ export default function AdminDashboard() {
     );
   }
 
-  const latestFees = feesCollectedByMonth[feesCollectedByMonth.length - 1].amount;
-
   return (
     <div className="space-y-6">
       <PageHeader title="Administrator dashboard" subtitle="School-wide overview for today." />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Total students" value={academicStats.totalStudents.toLocaleString()} icon={Users} trend={{ value: '+0.8%', up: true }} accent="teal" hint="vs. last month" />
-        <StatCard label="Teachers and staff" value={academicStats.totalStaff} icon={GraduationCap} accent="sky" hint={`${academicStats.activeClasses} active classes`} />
-        <StatCard label="Attendance today" value={`${academicStats.attendanceToday}%`} icon={CalendarCheck} trend={{ value: '-1.2%', up: false }} accent="amber" hint="vs. yesterday" />
-        <StatCard label="Fees collected (Nov)" value={`$${latestFees.toLocaleString()}`} icon={Wallet} trend={{ value: '+6.1%', up: true }} accent="emerald" hint={`${academicStats.feeCollection}% of term target`} />
+        <StatCard label="Active teachers" value={n(overview?.activeTeachers)} icon={GraduationCap} accent="sky" hint="Approved and signed up" />
+        <StatCard label="Registered parents" value={n(overview?.registeredParents)} icon={Baby} accent="emerald" hint="Verified accounts" />
+        <StatCard label="Total students" value={n(overview?.totalStudents)} icon={Users} accent="teal" hint="Currently enrolled" />
+        <Link to="/approvals" className="block rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500" aria-label="Open pending approvals">
+          <StatCard label="Pending approvals" value={n(pending)} icon={UserCheck} accent={pending > 0 ? 'amber' : 'teal'}
+            hint={overview ? `${overview.pendingTeachers} teachers · ${overview.pendingParents} parents` : undefined} />
+        </Link>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

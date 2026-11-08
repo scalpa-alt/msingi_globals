@@ -54,6 +54,7 @@ export default function Timetable() {
   const { user } = useAuth();
   const role = user!.role;
   const canEdit = role === 'administrator' || role === 'teacher';
+  const isFamily = role === 'student' || role === 'parent';
 
   const { classes, assignments, loading: classesLoading } = useManagedClasses();
   const subjects = useSubjects();
@@ -103,7 +104,7 @@ export default function Timetable() {
   // Students/parents only see their own children's classes.
   const visibleSlots = useMemo(() => {
     let list = slots;
-    if (role === 'student') {
+    if (isFamily) {
       const ids = new Set(classes.map((c) => c.id));
       list = list.filter((s) => ids.has(s.class_id));
     }
@@ -112,7 +113,7 @@ export default function Timetable() {
       list = list.filter((s) => (teacherFilter === 'none' ? s.teacher_id === null : s.teacher_id === teacherFilter));
     }
     return list;
-  }, [slots, role, classes, classFilter, teacherFilter]);
+  }, [slots, role, isFamily, classes, classFilter, teacherFilter]);
 
   const cell = (weekday: number, periodId: number) =>
     visibleSlots.filter((s) => s.weekday === weekday && s.period_id === periodId);
@@ -223,7 +224,7 @@ export default function Timetable() {
                 onChange={(e) => setClassFilter(e.target.value)}
                 className={`${inputClass} !w-auto`}
               >
-                <option value="all">{role === 'student' ? 'All my classes' : 'All classes'}</option>
+                <option value="all">{isFamily ? 'All my classes' : 'All classes'}</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>Class {c.label}</option>
                 ))}

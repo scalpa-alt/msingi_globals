@@ -2,8 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-route
 import type { ReactNode } from 'react';
 import AppLayout from '@/layouts/AppLayout';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
-import type { Role } from '@/context/AuthContext';
-import Login from '@/pages/Login';
+import AuthPage from '@/pages/auth/AuthPage';
+import AccountStatus from '@/pages/AccountStatus';
+import Approvals from '@/pages/Approvals';
+import Directory from '@/pages/Directory';
+import { hasAccess } from '@/lib/access';
 import Dashboard from '@/pages/Dashboard';
 import Admissions from '@/pages/Admissions';
 import ApplicantDetail from '@/pages/ApplicantDetail';
@@ -15,17 +18,6 @@ import Fees from '@/pages/Fees';
 import Library from '@/pages/Library';
 import Results from '@/pages/Results';
 import Messages from '@/pages/Messages';
-
-const roleAccess: Record<Role, string[]> = {
-  administrator: ['/dashboard', '/admissions', '/timetable', '/attendance', '/gradebook', '/exams', '/fees', '/library', '/messages'],
-  teacher: ['/dashboard', '/timetable', '/attendance', '/gradebook', '/exams', '/messages'],
-  student: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages'],
-};
-
-function hasAccess(role: Role, pathname: string): boolean {
-  const allowed = roleAccess[role];
-  return allowed.some((p) => pathname === p || pathname.startsWith(p + '/'));
-}
 
 function AuthSpinner() {
   return (
@@ -42,6 +34,8 @@ function RequireAuth({ children }: { children: ReactNode }) {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+  // Pending, rejected or unverified accounts never reach the app, only the friendly status screen.
+  if (user.status !== 'active') return <AccountStatus />;
   if (!hasAccess(user.role, location.pathname)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -60,7 +54,7 @@ export default function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-          <Route path="/login" element={<RedirectIfAuth><Login /></RedirectIfAuth>} />
+          <Route path="/login" element={<RedirectIfAuth><AuthPage /></RedirectIfAuth>} />
           <Route
             element={
               <RequireAuth>
@@ -69,6 +63,8 @@ export default function App() {
             }
           >
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/approvals" element={<Approvals />} />
+            <Route path="/directory" element={<Directory />} />
             <Route path="/admissions" element={<Admissions />} />
             <Route path="/admissions/:id" element={<ApplicantDetail />} />
             <Route path="/timetable" element={<Timetable />} />

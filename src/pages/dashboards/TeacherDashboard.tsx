@@ -6,6 +6,10 @@ import Badge from '@/components/Badge';
 import Skeleton from '@/components/Skeleton';
 import { useLoadingDelay } from '@/hooks/useLoadingDelay';
 import { useAuth } from '@/context/AuthContext';
+import { useState } from 'react';
+import { useManagedClasses } from '@/lib/school';
+import MyClass from '@/pages/teacher/MyClass';
+import SubjectView from '@/pages/teacher/SubjectView';
 import { teacherClasses, pendingMarking, announcements } from '@/data/mockData';
 
 const card = 'rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900';
@@ -16,7 +20,7 @@ const statusStyle: Record<string, { label: string; variant: 'emerald' | 'teal' |
   upcoming: { label: 'Upcoming', variant: 'slate' },
 };
 
-export default function TeacherDashboard() {
+function TeacherOverview() {
   const loading = useLoadingDelay(900);
   const { user } = useAuth();
 
@@ -134,6 +138,43 @@ export default function TeacherDashboard() {
           </section>
         </div>
       </div>
+    </div>
+  );
+}
+
+type Tab = 'overview' | 'class' | 'subjects';
+
+export default function TeacherDashboard() {
+  const { classes, assignments, loading } = useManagedClasses();
+  const [tab, setTab] = useState<Tab>('overview');
+  const ownClasses = classes.filter((c) => assignments.some((a) => a.class_id === c.id && a.is_class_teacher));
+  const tabs: { id: Tab; label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    ...(ownClasses.length ? [{ id: 'class' as const, label: 'My Class' }] : []),
+    { id: 'subjects', label: 'Subjects' },
+  ];
+  const active = tabs.some((t) => t.id === tab) ? tab : 'overview';
+
+  return (
+    <div className="space-y-6">
+      <div role="tablist" aria-label="Teacher views" className="inline-flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            role="tab"
+            aria-selected={active === t.id}
+            onClick={() => setTab(t.id)}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+              active === t.id ? 'bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-700 dark:text-slate-400'
+            }`}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+      {active === 'overview' && <TeacherOverview />}
+      {active === 'class' && !loading && <MyClass classes={ownClasses} />}
+      {active === 'subjects' && !loading && <SubjectView classes={classes} assignments={assignments} />}
     </div>
   );
 }

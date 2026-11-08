@@ -25,7 +25,8 @@ interface TopbarProps {
 const roleLabels: Record<string, string> = {
   administrator: 'Administrator',
   teacher: 'Teacher',
-  student: 'Student / Parent',
+  student: 'Student',
+  parent: 'Parent',
 };
 
 function initials(name: string): string {
