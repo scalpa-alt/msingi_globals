@@ -1,6 +1,6 @@
 # Data model and access control
 
-Run `supabase/migrations/001 → 002 → 003 → 004` in order in the Supabase SQL editor.
+Run `supabase/migrations/001 → 002 → 003 → 004 → 005` in order in the Supabase SQL editor.
 
 ## Entity relationships
 
@@ -66,6 +66,11 @@ Trade-off: a link is made on name and class alone. If you need stronger proof, a
 | Own timetable, attendance, grades | all | assigned classes | assigned classes and subjects | read-only, own children |
 
 All of this is enforced in Postgres (RLS plus a restrictive `school_id = my_school_id()` policy on every table); the front end only hides what the database would refuse anyway.
+
+## Results and notifications (migration 005)
+
+- `class_standing(student, term)` returns a child's average, the class average, the rank and the class size. It checks that the caller may see that student and the same school, and returns nothing about other students.
+- A trigger on `teachers` adds a bell notification for the school's administrators when a teacher registers, and for the teacher when they are approved.
 
 ## Known limitation
 

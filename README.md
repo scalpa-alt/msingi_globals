@@ -15,7 +15,7 @@ Access is enforced by Postgres row-level security, and every school's data is ke
 ## Setup
 
 1. **Database.** In the Supabase SQL editor run, in order, each as its own query:
-   `supabase/migrations/001_schema.sql`, `002_teacher_scoped_access.sql`, `003_registration_and_tenancy.sql`, `004_parents_self_service.sql`.
+   `supabase/migrations/001_schema.sql`, `002_teacher_scoped_access.sql`, `003_registration_and_tenancy.sql`, `004_parents_self_service.sql`, `005_class_standing.sql`.
 2. **Environment variables** (Vercel → Settings → Environment Variables, or a local `.env`; copy `.env.example`):
    - `VITE_SUPABASE_URL` — the bare project URL, e.g. `https://abcd1234.supabase.co` (no path, no trailing slash)
    - `VITE_SUPABASE_ANON_KEY` — the `anon` / publishable key. Never use the `service_role` key.
@@ -52,8 +52,13 @@ src/
 supabase/migrations/        database schema, row-level security and registration logic
 ```
 
+## What is live data
+
+Everything reads from your Supabase database: dashboards, timetable, attendance, gradebook, results (with class rank and average), exams, fees, library, messages, admissions, approvals, the parent directory and the notification bell. A brand-new school starts empty, and each page says so and shows what to do next.
+
 ## Known limits
 
-- The dashboards' charts, plus Exams, Fees, Library, Messages and Results, still show sample data, not your database.
 - A parent's child is linked by name and class only; add an admission-number field if you need stronger proof.
 - `books`, `fee_invoices` and `applicants` ids are shared across schools; make them per-school before onboarding many schools.
+- Money is shown with a `$` sign; change `money()` in `src/lib/format.ts` for your currency.
+- The enrolment chart counts students by when their record was created, so students imported all at once appear as one jump.
