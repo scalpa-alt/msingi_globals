@@ -3,14 +3,13 @@ import { Download, GraduationCap, Lock, Users } from 'lucide-react';
 import { RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
-import { friendlyError, inputClass, letterGrade, useManagedClasses, useSubjects } from '@/lib/school';
+import { DEFAULT_TERM, friendlyError, inputClass, letterGrade, useManagedClasses, useSubjects } from '@/lib/school';
 import PageHeader from '@/components/PageHeader';
 import Badge from '@/components/Badge';
 import EmptyState from '@/components/EmptyState';
 import Skeleton from '@/components/Skeleton';
 
 const CORE_SUBJECTS = ['Math', 'English', 'Science', 'History'];
-const DEFAULT_TERM = '2026-T3';
 
 interface StudentRow {
   id: string;

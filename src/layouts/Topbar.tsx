@@ -12,8 +12,17 @@ import {
   LogOut,
   User,
 } from 'lucide-react';
-import { notifications } from '@/data/mockData';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
+import { timeAgo } from '@/lib/format';
+
+interface Notice {
+  id: string;
+  title: string;
+  detail: string | null;
+  is_read: boolean;
+  created_at: string;
+}
 
 interface TopbarProps {
   onToggleMobile: () => void;
@@ -35,11 +44,38 @@ function initials(name: string): string {
 
 export default function Topbar({ onToggleMobile, onToggleCollapse, theme, onToggleTheme }: TopbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Notice[]>([]);
   const [profileOpen, setProfileOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    const load = () =>
+      supabase
+        .from('notifications')
+        .select('id, title, detail, is_read, created_at')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10)
+        .then(({ data }) => !cancelled && setNotifications((data ?? []) as Notice[]));
+    load();
+    const timer = setInterval(load, 60000); // pick up new notifications without a page reload
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [userId]);
+  const unread = notifications.filter((n) => !n.is_read);
+  async function markAllRead() {
+    if (unread.length === 0) return;
+    setNotifications((list) => list.map((n) => ({ ...n, is_read: true })));
+    await supabase.from('notifications').update({ is_read: true }).in('id', unread.map((n) => n.id));
+  }
 
   const handleLogout = async () => {
     setProfileOpen(false);
@@ -105,7 +141,7 @@ export default function Topbar({ onToggleMobile, onToggleCollapse, theme, onTogg
             aria-label="Notifications"
           >
             <Bell className="h-5 w-5" />
-            <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />
+            {unread.length > 0 && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-rose-500 ring-2 ring-white dark:ring-slate-900" />}
           </button>
 
           {notifOpen && (
@@ -113,26 +149,27 @@ export default function Topbar({ onToggleMobile, onToggleCollapse, theme, onTogg
               <div className="flex items-center justify-between border-b border-slate-200 px-4 py-3 dark:border-slate-800">
                 <p className="text-sm font-semibold text-slate-900 dark:text-white">Notifications</p>
                 <span className="rounded-full bg-teal-50 px-2 py-0.5 text-xs font-medium text-teal-600 dark:bg-teal-500/10 dark:text-teal-400">
-                  {notifications.length} new
+                  {unread.length} new
                 </span>
               </div>
               <div className="max-h-80 overflow-y-auto scrollbar-thin">
+                {notifications.length === 0 && <p className="px-4 py-8 text-center text-sm text-slate-400">You're all caught up.</p>}
                 {notifications.map((n) => (
                   <div
                     key={n.id}
                     className="flex gap-3 border-b border-slate-100 px-4 py-3 last:border-0 hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
                   >
-                    <div className="mt-1 h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+                    <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n.is_read ? "bg-slate-300 dark:bg-slate-600" : "bg-teal-500"}`} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-slate-900 dark:text-white">{n.title}</p>
-                      <p className="truncate text-xs text-slate-500 dark:text-slate-400">{n.detail}</p>
-                      <p className="mt-1 text-xs text-slate-400">{n.time}</p>
+                      {n.detail && <p className="text-xs text-slate-500 dark:text-slate-400">{n.detail}</p>}
+                      <p className="mt-1 text-xs text-slate-400">{timeAgo(n.created_at)}</p>
                     </div>
                   </div>
                 ))}
               </div>
-              <button className="w-full border-t border-slate-200 py-2.5 text-center text-xs font-medium text-teal-600 hover:bg-slate-50 dark:border-slate-800 dark:text-teal-400 dark:hover:bg-slate-800/50">
-                View all notifications
+              <button onClick={markAllRead} disabled={unread.length === 0} className="w-full border-t border-slate-200 py-2.5 text-center text-xs font-medium text-teal-600 hover:bg-slate-50 disabled:opacity-50 dark:border-slate-800 dark:text-teal-400 dark:hover:bg-slate-800/50">
+                Mark all as read
               </button>
             </div>
           )}

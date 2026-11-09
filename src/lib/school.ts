@@ -2,6 +2,9 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 
+/** The term the gradebook and dashboards work with by default. */
+export const DEFAULT_TERM = '2026-T3';
+
 export interface ClassRow {
   id: string;
   label: string;
