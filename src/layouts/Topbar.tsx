@@ -15,6 +15,7 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/format';
+import InstallButton from '@/components/InstallButton';
 
 interface Notice {
   id: string;
@@ -124,6 +125,8 @@ export default function Topbar({ onToggleMobile, onToggleCollapse, theme, onTogg
       </div>
 
       <div className="ml-auto flex items-center gap-1 sm:gap-2">
+        <InstallButton />
+
         {/* Theme toggle */}
         <button
           onClick={onToggleTheme}

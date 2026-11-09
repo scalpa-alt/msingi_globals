@@ -5,6 +5,7 @@ import Topbar from './Topbar';
 import { useTheme } from '@/hooks/useTheme';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useAuth } from '@/context/AuthContext';
+import OfflineBanner from '@/components/OfflineBanner';
 
 export default function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
@@ -22,6 +23,7 @@ export default function AppLayout() {
         role={user!.role}
       />
       <div className={`flex flex-col transition-all duration-300 ${collapsed ? 'lg:pl-20' : 'lg:pl-64'}`}>
+        <OfflineBanner />
         <Topbar
           onToggleMobile={() => setMobileOpen(true)}
           onToggleCollapse={() => setCollapsed((c) => !c)}
