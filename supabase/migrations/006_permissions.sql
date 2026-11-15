@@ -101,32 +101,31 @@ create policy "snapshots admin all" on public.enrollment_snapshots
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- ---- 5. bell schedule (periods) becomes per-school so each administrator can edit theirs ----
-create table public.periods_new (
-  school_id  uuid not null default public.my_school_id() references public.schools(id) on delete cascade,
-  id         smallint not null check (id between 1 and 20),
-  label      text not null,
-  start_time time not null,
-  end_time   time not null,
-  check (end_time > start_time),
-  primary key (school_id, id)
-);
-
--- every existing school keeps the schedule it already had
-insert into public.periods_new (school_id, id, label, start_time, end_time)
-select s.id, p.id, p.label, p.start_time, p.end_time from public.schools s cross join public.periods p;
-
+-- Done in place (no table swap): keep a copy of the rows, add school_id, rebuild the key.
 do $$
 declare r record;
 begin
+  -- the old single-column foreign key from timetable_slots (whatever it is called)
   for r in select conname from pg_constraint
            where conrelid = 'public.timetable_slots'::regclass and confrelid = 'public.periods'::regclass loop
     execute format('alter table public.timetable_slots drop constraint %I', r.conname);
   end loop;
 end $$;
 
-drop table public.periods;
-alter table public.periods_new rename to periods;
-alter table public.periods rename constraint periods_new_pkey to periods_pkey;
+create temp table _old_periods on commit drop as select id, label, start_time, end_time from public.periods;
+delete from public.periods;
+
+alter table public.periods add column if not exists school_id uuid references public.schools(id) on delete cascade;
+alter table public.periods alter column school_id set default public.my_school_id();
+alter table public.periods alter column school_id set not null;
+alter table public.periods drop constraint if exists periods_pkey;
+alter table public.periods add constraint periods_pkey primary key (school_id, id);
+alter table public.periods drop constraint if exists periods_id_check;
+alter table public.periods add constraint periods_id_range check (id between 1 and 20);
+
+-- every existing school keeps the schedule it already had
+insert into public.periods (school_id, id, label, start_time, end_time)
+select s.id, o.id, o.label, o.start_time, o.end_time from public.schools s cross join _old_periods o;
 
 -- a slot may only use a period of its own school; a period still in use cannot be deleted
 alter table public.timetable_slots
@@ -134,6 +133,9 @@ alter table public.timetable_slots
   foreign key (school_id, period_id) references public.periods (school_id, id) on delete restrict;
 
 alter table public.periods enable row level security;
+drop policy if exists "periods read" on public.periods;
+drop policy if exists "periods admin write" on public.periods;
+drop policy if exists "tenant isolation" on public.periods;
 create policy "periods read" on public.periods for select to authenticated using (true);
 create policy "periods admin write" on public.periods for all to authenticated
   using (public.is_admin()) with check (public.is_admin());
