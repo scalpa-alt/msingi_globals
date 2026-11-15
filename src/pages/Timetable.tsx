@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CalendarDays, Plus, Trash2 } from 'lucide-react';
+import { CalendarDays, Clock, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/context/AuthContext';
 import { friendlyError, inputClass, useManagedClasses, useSubjects } from '@/lib/school';
 import PageHeader from '@/components/PageHeader';
 import Modal from '@/components/Modal';
+import PeriodsModal from '@/components/PeriodsModal';
 import EmptyState from '@/components/EmptyState';
 import Skeleton from '@/components/Skeleton';
 
@@ -69,6 +70,7 @@ export default function Timetable() {
   const [teacherFilter, setTeacherFilter] = useState('all');
 
   const [editor, setEditor] = useState<EditorState | null>(null);
+  const [periodsOpen, setPeriodsOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -229,6 +231,11 @@ export default function Timetable() {
                   <option key={c.id} value={c.id}>Class {c.label}</option>
                 ))}
               </select>
+              {role === 'administrator' && (
+                <button onClick={() => setPeriodsOpen(true)} className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                  <Clock className="h-4 w-4" /> Bell schedule
+                </button>
+              )}
               {role === 'administrator' && (
                 <select
                   aria-label="Filter by teacher"
@@ -429,6 +436,7 @@ export default function Timetable() {
           </div>
         )}
       </Modal>
+      {role === 'administrator' && <PeriodsModal open={periodsOpen} onClose={() => setPeriodsOpen(false)} periods={periods} onChanged={load} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import RegisterAdmin from './RegisterAdmin';
 import RegisterTeacher from './RegisterTeacher';
 import RegisterParent from './RegisterParent';
 import { RegistrationSuccess } from './parts';
+import InstallButton from '@/components/InstallButton';
 
 type Mode = 'signin' | 'register';
 
@@ -169,6 +170,10 @@ export default function AuthPage() {
               )}
             </div>
           )}
+
+          <div className="mt-6 flex justify-center">
+            <InstallButton variant="link" />
+          </div>
         </div>
       </div>
     </div>

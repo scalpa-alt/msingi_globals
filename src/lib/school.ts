@@ -105,9 +105,14 @@ export function letterGrade(avg: number): { label: string; variant: 'emerald' | 
 }
 
 /** Turn a Postgres / PostgREST error into a message a teacher can act on. */
-export function friendlyError(error: { code?: string; message: string }): string {
-  if (error.code === '23505') return 'That time slot is already taken for this class.';
+export function friendlyError(
+  error: { code?: string; message: string },
+  opts: { duplicate?: string; inUse?: string } = {},
+): string {
+  if (error.code === '23505') return opts.duplicate ?? 'That time slot is already taken for this class.';
   if (error.code === '42501' || /row-level security/i.test(error.message)) return 'You do not have permission to change this.';
+  if (/books_available_copies_check/.test(error.message)) return 'No copies of this book are left to lend.';
+  if (error.code === '23503') return opts.inUse ?? 'This is still in use elsewhere, so it cannot be changed this way.';
   return error.message;
 }
 

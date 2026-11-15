@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Mail, Phone, Search, Users } from 'lucide-react';
+import { Mail, Pencil, Phone, Plus, Search, UserMinus, Users } from 'lucide-react';
 import Badge from '@/components/Badge';
 import EmptyState from '@/components/EmptyState';
+import Modal from '@/components/Modal';
+import StudentFormModal from '@/components/StudentFormModal';
 import { supabase } from '@/lib/supabase';
 import { friendlyError, inputClass } from '@/lib/school';
 import type { ClassRow } from '@/lib/school';
@@ -32,6 +34,11 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [q, setQ] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
+  const [form, setForm] = useState<{ open: boolean; student: Student | null }>({ open: false, student: null });
+  const [removing, setRemoving] = useState<Student | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!classId) return;
@@ -46,7 +53,7 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
     return () => {
       cancelled = true;
     };
-  }, [classId]);
+  }, [classId, reloadKey]);
 
   const students = useMemo<Student[]>(() => {
     const map = new Map<string, Student>();
@@ -60,6 +67,16 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
     }
     return [...map.values()];
   }, [rows]);
+
+  async function removeStudent(s: Student) {
+    setBusy(true);
+    setActionError(null);
+    const { error: e } = await supabase.from('students').update({ status: 'withdrawn' }).eq('id', s.id);
+    setBusy(false);
+    if (e) return setActionError(friendlyError(e));
+    setRemoving(null);
+    setReloadKey((k) => k + 1);
+  }
 
   const needle = q.trim().toLowerCase();
   const shown = students.filter(
@@ -78,6 +95,9 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search student, admission no. or parent" aria-label="Search class list" className={`${inputClass} pl-9`} />
         </div>
+        <button onClick={() => setForm({ open: true, student: null })} className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-3.5 py-2 text-sm font-medium text-white shadow-sm hover:bg-teal-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500/40">
+          <Plus className="h-4 w-4" /> Add student
+        </button>
       </div>
 
       {error && <p role="alert" className="rounded-xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
@@ -91,7 +111,11 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
             <li key={s.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-card dark:border-slate-800 dark:bg-slate-900">
               <div className="flex items-start justify-between gap-2">
                 <p className="font-semibold text-slate-900 dark:text-white">{s.name}</p>
-                {s.gender && <Badge variant="slate">{s.gender}</Badge>}
+                <div className="flex items-center gap-1">
+                  {s.gender && <Badge variant="slate">{s.gender}</Badge>}
+                  <button onClick={() => setForm({ open: true, student: s })} aria-label={`Edit ${s.name}`} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 dark:hover:bg-slate-800"><Pencil className="h-4 w-4" /></button>
+                  <button onClick={() => { setActionError(null); setRemoving(s); }} aria-label={`Remove ${s.name} from the class`} className="rounded-lg p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-500"><UserMinus className="h-4 w-4" /></button>
+                </div>
               </div>
               <p className="mt-0.5 text-xs text-slate-400">Adm. {s.admissionNo}</p>
               <div className="mt-3 space-y-2 border-t border-slate-100 pt-3 dark:border-slate-800">
@@ -108,6 +132,30 @@ export default function MyClass({ classes }: { classes: ClassRow[] }) {
           ))}
         </ul>
       )}
+
+      <StudentFormModal
+        open={form.open}
+        onClose={() => setForm({ open: false, student: null })}
+        onSaved={() => setReloadKey((k) => k + 1)}
+        classes={classes}
+        defaultClassId={classId}
+        student={form.student ? { id: form.student.id, full_name: form.student.name, admission_no: form.student.admissionNo, class_id: classId, gender: form.student.gender } : null}
+      />
+
+      <Modal
+        open={!!removing}
+        onClose={() => setRemoving(null)}
+        title={`Remove ${removing?.name ?? ''} from your class?`}
+        description="They are taken off your class list, attendance and gradebook. Their past marks are kept, and the administrator can restore them. Only the administrator can delete a student permanently."
+        footer={
+          <>
+            <button onClick={() => setRemoving(null)} className="rounded-xl border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 dark:border-slate-700 dark:text-slate-300">Cancel</button>
+            <button onClick={() => removing && removeStudent(removing)} disabled={busy} className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700 disabled:opacity-60">{busy ? 'Removing…' : 'Remove from class'}</button>
+          </>
+        }
+      >
+        {actionError ? <p role="alert" className="text-sm text-rose-600">{actionError}</p> : <span />}
+      </Modal>
     </div>
   );
 }

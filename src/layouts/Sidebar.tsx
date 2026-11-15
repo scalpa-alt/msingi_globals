@@ -10,6 +10,7 @@ import {
   MessageSquare,
   UserCheck,
   Users,
+  School,
   GraduationCap as Logo,
   X,
 } from 'lucide-react';
@@ -28,6 +29,7 @@ export const navItems: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/approvals', label: 'Approvals', icon: UserCheck },
   { to: '/directory', label: 'Directory', icon: Users },
+  { to: '/students', label: 'Students', icon: School },
   { to: '/admissions', label: 'Admissions', icon: UserPlus },
   { to: '/timetable', label: 'Timetable', icon: CalendarDays },
   { to: '/attendance', label: 'Attendance', icon: CheckSquare },

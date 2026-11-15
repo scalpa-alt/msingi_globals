@@ -117,7 +117,8 @@ export default function Attendance() {
 
   const setMark = (id: string, status: Status) => {
     setMessage(null);
-    setMarks((m) => ({ ...m, [id]: status }));
+    // pressing the active status again clears the mark
+    setMarks((m) => ({ ...m, [id]: m[id] === status ? undefined : status }));
   };
 
   const markAllPresent = () => {
@@ -126,20 +127,34 @@ export default function Attendance() {
   };
 
   async function save() {
-    const rows = students
-      .filter((s) => marks[s.id] && marks[s.id] !== saved[s.id])
+    const changed = students.filter((s) => marks[s.id] !== saved[s.id]);
+    const rows = changed
+      .filter((s) => marks[s.id])
       .map((s) => ({ student_id: s.id, class_id: classId, date, status: marks[s.id] as Status, marked_by: user!.id }));
-    if (rows.length === 0) return;
+    const clearIds = changed.filter((s) => !marks[s.id]).map((s) => s.id);
+    if (rows.length + clearIds.length === 0) return;
     setSaving(true);
     setMessage(null);
-    const { error } = await supabase.from('attendance').upsert(rows, { onConflict: 'student_id,date' });
-    setSaving(false);
-    if (error) {
-      setMessage({ kind: 'error', text: friendlyError(error) });
-      return;
+    if (rows.length) {
+      const { error } = await supabase.from('attendance').upsert(rows, { onConflict: 'student_id,date' });
+      if (error) {
+        setSaving(false);
+        setMessage({ kind: 'error', text: friendlyError(error) });
+        return;
+      }
     }
+    if (clearIds.length) {
+      const { error } = await supabase.from('attendance').delete().eq('date', date).in('student_id', clearIds);
+      if (error) {
+        setSaving(false);
+        setMessage({ kind: 'error', text: friendlyError(error) });
+        return;
+      }
+    }
+    setSaving(false);
     setSaved({ ...marks });
-    setMessage({ kind: 'ok', text: `Saved attendance for ${rows.length} student${rows.length === 1 ? '' : 's'}.` });
+    const parts = [rows.length && `saved ${rows.length}`, clearIds.length && `cleared ${clearIds.length}`].filter(Boolean).join(', ');
+    setMessage({ kind: 'ok', text: `Attendance updated: ${parts}.` });
     load();
   }
 

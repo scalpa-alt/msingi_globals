@@ -7,6 +7,7 @@ import ResetPassword from '@/pages/auth/ResetPassword';
 import AccountStatus from '@/pages/AccountStatus';
 import Approvals from '@/pages/Approvals';
 import Directory from '@/pages/Directory';
+import Students from '@/pages/Students';
 import { hasAccess } from '@/lib/access';
 import Dashboard from '@/pages/Dashboard';
 import Admissions from '@/pages/Admissions';
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/approvals" element={<Approvals />} />
             <Route path="/directory" element={<Directory />} />
+            <Route path="/students" element={<Students />} />
             <Route path="/admissions" element={<Admissions />} />
             <Route path="/admissions/:id" element={<ApplicantDetail />} />
             <Route path="/timetable" element={<Timetable />} />

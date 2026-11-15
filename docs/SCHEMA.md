@@ -1,6 +1,6 @@
 # Data model and access control
 
-Run `supabase/migrations/001 → 002 → 003 → 004 → 005` in order in the Supabase SQL editor.
+Run `supabase/migrations/001 → 002 → 003 → 004 → 005 → 006` in order in the Supabase SQL editor.
 
 ## Entity relationships
 
@@ -75,3 +75,9 @@ All of this is enforced in Postgres (RLS plus a restrictive `school_id = my_scho
 ## Known limitation
 
 `books.id`, `fee_invoices.id` and `applicants.id` are still globally unique text keys, so two schools cannot reuse the same id there.
+
+## Permissions (migration 006)
+- `is_class_teacher_of(class)`: class teachers (and admins) may insert and update `students` in that class. Teachers have no DELETE; "remove" sets `status = 'withdrawn'`. A trigger stops non-admins linking a student to a login (`profile_id`).
+- Library: staff (`is_staff()`) have full access to `books` and `book_loans`; `sync_book_stock` keeps `available_copies` correct on issue, return, un-return and delete. Book and invoice ids default to `BK-xxxxxxxx` / `FEE-xxxxxxxx`.
+- Administrators also get write access to `activity_log` and `enrollment_snapshots`.
+- `periods` is now per school (PK `school_id, id`); timetable slots reference it with `on delete restrict`, so a period in use cannot be deleted.
