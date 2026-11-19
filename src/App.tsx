@@ -21,6 +21,8 @@ import Fees from '@/pages/Fees';
 import Library from '@/pages/Library';
 import Results from '@/pages/Results';
 import Messages from '@/pages/Messages';
+import Notices from '@/pages/Notices';
+import Audit from '@/pages/Audit';
 
 function AuthSpinner() {
   return (
@@ -81,6 +83,8 @@ export default function App() {
             <Route path="/library" element={<Library />} />
             <Route path="/results" element={<Results />} />
             <Route path="/messages" element={<Messages />} />
+            <Route path="/notices" element={<Notices />} />
+            <Route path="/audit" element={<Audit />} />
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Route>

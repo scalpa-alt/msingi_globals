@@ -4,11 +4,11 @@ import type { Role } from '@/context/AuthContext';
 export const roleAccess: Record<Role, string[]> = {
   administrator: [
     '/dashboard', '/approvals', '/directory', '/students', '/teachers', '/admissions', '/timetable', '/attendance',
-    '/gradebook', '/exams', '/fees', '/library', '/messages',
+    '/gradebook', '/exams', '/fees', '/library', '/messages', '/notices', '/audit',
   ],
-  teacher: ['/dashboard', '/timetable', '/attendance', '/gradebook', '/exams', '/library', '/messages'],
-  student: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages'],
-  parent: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages'],
+  teacher: ['/dashboard', '/timetable', '/attendance', '/gradebook', '/exams', '/library', '/messages', '/notices'],
+  student: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages', '/notices'],
+  parent: ['/dashboard', '/timetable', '/results', '/fees', '/library', '/messages', '/notices'],
 };
 
 export function hasAccess(role: Role, pathname: string): boolean {

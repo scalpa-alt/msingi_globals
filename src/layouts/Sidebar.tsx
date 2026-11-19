@@ -12,6 +12,8 @@ import {
   Users,
   School,
   Presentation,
+  Megaphone,
+  ScrollText,
   GraduationCap as Logo,
   X,
 } from 'lucide-react';
@@ -41,6 +43,8 @@ export const navItems: NavItem[] = [
   { to: '/library', label: 'Library', icon: BookOpen },
   { to: '/results', label: 'Results', icon: GraduationCap },
   { to: '/messages', label: 'Messages', icon: MessageSquare },
+  { to: '/notices', label: 'Notices', icon: Megaphone },
+  { to: '/audit', label: 'Audit trail', icon: ScrollText },
 ];
 
 export function navItemsForRole(role: Role): NavItem[] {
