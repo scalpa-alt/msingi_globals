@@ -3,7 +3,7 @@ import type { Role } from '@/context/AuthContext';
 /** Which routes each role may open (the database enforces the same rules with row-level security). */
 export const roleAccess: Record<Role, string[]> = {
   administrator: [
-    '/dashboard', '/approvals', '/directory', '/students', '/admissions', '/timetable', '/attendance',
+    '/dashboard', '/approvals', '/directory', '/students', '/teachers', '/admissions', '/timetable', '/attendance',
     '/gradebook', '/exams', '/fees', '/library', '/messages',
   ],
   teacher: ['/dashboard', '/timetable', '/attendance', '/gradebook', '/exams', '/library', '/messages'],
